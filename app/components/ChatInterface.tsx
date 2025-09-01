@@ -116,11 +116,11 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
       {/* Messages */}
       <ScrollArea 
         style={{ flex: 1 }} 
-        p="md" 
+        p="lg" 
         scrollbars="y"
         offsetScrollbars
       >
-        <Stack gap="md">
+        <Stack gap="lg">
           {messages.length === 0 && (
             <Box ta="center" py="lg">
               <Stack gap="md" align="center">
@@ -165,45 +165,80 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
             <Group
               key={message.id}
               align="flex-start"
-              gap="sm"
+              gap="xs"
               style={{ 
                 flexDirection: message.type === 'user' ? 'row-reverse' : 'row',
+                marginBottom: '4px'
               }}
             >
               <Avatar 
-                size={32}
+                size={28}
                 color={message.type === 'user' ? 'dark' : 'gray'}
-                style={{ flexShrink: 0 }}
+                style={{ 
+                  flexShrink: 0,
+                  marginTop: '2px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  border: '1px solid var(--border-color)'
+                }}
               >
-                {message.type === 'user' ? <IconUser size={16} /> : <IconRobot size={16} />}
+                {message.type === 'user' ? <IconUser size={14} /> : <IconRobot size={14} />}
               </Avatar>
               
               <Box
                 style={{
-                  backgroundColor: message.type === 'user' ? 'var(--primary)' : 'var(--secondary)',
-                  color: message.type === 'user' ? 'var(--background)' : 'var(--foreground)',
-                  borderRadius: 16,
-                  padding: '12px 16px',
-                  maxWidth: '85%',
-                  wordBreak: 'break-word',
-                  border: message.type === 'assistant' ? '1px solid var(--border-color)' : 'none'
+                  position: 'relative',
+                  maxWidth: message.type === 'user' ? '75%' : '80%',
+                  marginLeft: message.type === 'user' ? '0' : '8px',
+                  marginRight: message.type === 'user' ? '8px' : '0'
                 }}
               >
-                {message.image && (
-                  <Image
-                    src={message.image}
-                    alt="User uploaded image"
-                    maw={180}
-                    mb="xs"
-                    radius="sm"
-                  />
-                )}
-                <Text size="sm">{message.text}</Text>
+                <Box
+                  style={{
+                    backgroundColor: message.type === 'user' ? 'var(--primary)' : 'var(--secondary)',
+                    color: message.type === 'user' ? 'var(--background)' : 'var(--foreground)',
+                    borderRadius: message.type === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                    padding: message.image ? '10px' : '10px 14px',
+                    wordBreak: 'break-word',
+                    border: message.type === 'assistant' ? '1px solid var(--border-color)' : 'none',
+                    boxShadow: message.type === 'user' 
+                      ? '0 2px 8px rgba(0, 0, 0, 0.15)' 
+                      : '0 1px 4px rgba(0, 0, 0, 0.08)',
+                    position: 'relative'
+                  }}
+                >
+                  {message.image && (
+                    <Box
+                      style={{
+                        marginBottom: message.text ? '8px' : '0',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(0, 0, 0, 0.1)',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                      }}
+                    >
+                      <Image
+                        src={message.image}
+                        alt="User uploaded image"
+                        maw={220}
+                        style={{ display: 'block' }}
+                      />
+                    </Box>
+                  )}
+                  {message.text && (
+                    <Text size="sm" style={{ lineHeight: 1.4 }}>
+                      {message.text}
+                    </Text>
+                  )}
+                </Box>
                 <Text 
                   size="xs" 
                   style={{ 
-                    opacity: 0.7,
-                    marginTop: 4
+                    opacity: 0.6,
+                    marginTop: '4px',
+                    marginLeft: message.type === 'user' ? '0' : '4px',
+                    marginRight: message.type === 'user' ? '4px' : '0',
+                    textAlign: message.type === 'user' ? 'right' : 'left',
+                    color: 'var(--primary-light)'
                   }}
                 >
                   {message.timestamp.toLocaleTimeString([], { 
@@ -215,19 +250,61 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
             </Group>
           ))}
           {isLoading && (
-            <Group align="flex-start" gap="sm">
-              <Avatar size={32} color="gray">
-                <IconRobot size={16} />
-              </Avatar>
-              <Box
-                style={{
-                  backgroundColor: 'var(--secondary)',
-                  borderRadius: 16,
-                  padding: '12px 16px',
+            <Group align="flex-start" gap="xs" style={{ marginBottom: '4px' }}>
+              <Avatar 
+                size={28} 
+                color="gray"
+                style={{ 
+                  flexShrink: 0,
+                  marginTop: '2px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <Text size="sm" c="dimmed">Generating...</Text>
+                <IconRobot size={14} />
+              </Avatar>
+              <Box style={{ marginLeft: '8px' }}>
+                <Box
+                  style={{
+                    backgroundColor: 'var(--secondary)',
+                    borderRadius: '18px 18px 18px 4px',
+                    padding: '10px 14px',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+                    position: 'relative'
+                  }}
+                >
+                  <Group gap="xs" align="center">
+                    <Box
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-light)',
+                        animation: 'pulse 1.5s ease-in-out infinite'
+                      }}
+                    />
+                    <Box
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-light)',
+                        animation: 'pulse 1.5s ease-in-out infinite 0.3s'
+                      }}
+                    />
+                    <Box
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-light)',
+                        animation: 'pulse 1.5s ease-in-out infinite 0.6s'
+                      }}
+                    />
+                    <Text size="sm" c="dimmed" ml="xs">Generating...</Text>
+                  </Group>
+                </Box>
               </Box>
             </Group>
           )}
@@ -239,28 +316,49 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
         <Stack gap="xs">
           {inputImage && (
             <Box
-              p="xs"
+              p="sm"
               style={{
                 backgroundColor: 'var(--secondary)',
-                borderRadius: 8,
-                border: '1px solid var(--border-color)'
+                borderRadius: 12,
+                border: '1px solid var(--border-color)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
               }}
             >
               <Group justify="space-between" align="center">
-                <Group gap="xs">
-                  <Image
-                    src={URL.createObjectURL(inputImage)}
-                    alt="Selected image"
-                    w={30}
-                    h={30}
-                    radius={4}
-                  />
-                  <Text size="xs" c="dimmed" truncate maw={150}>
+                <Group gap="sm">
+                  <Box
+                    style={{
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border-color)',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
+                    }}
+                  >
+                    <Image
+                      src={URL.createObjectURL(inputImage)}
+                      alt="Selected image"
+                      w={36}
+                      h={36}
+                      style={{ display: 'block' }}
+                    />
+                  </Box>
+                  <Text size="sm" c="dimmed" truncate maw={180}>
                     {inputImage.name}
                   </Text>
                 </Group>
-                <ActionIcon size="sm" variant="subtle" color="red" onClick={removeImage}>
-                  <IconX size={12} />
+                <ActionIcon 
+                  size="sm" 
+                  variant="subtle" 
+                  color="gray" 
+                  onClick={removeImage}
+                  style={{
+                    borderRadius: '6px',
+                    '&:hover': {
+                      backgroundColor: 'var(--tertiary)'
+                    }
+                  }}
+                >
+                  <IconX size={14} />
                 </ActionIcon>
               </Group>
             </Box>
@@ -279,15 +377,26 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
               disabled={isLoading}
               size="sm"
             />
-            <Group gap={4}>
+            <Group gap="xs">
               <FileButton
                 resetRef={resetRef}
                 onChange={handleImageUpload}
                 accept="image/*"
               >
                 {(props) => (
-                  <ActionIcon {...props} variant="light" size="lg" color="gray">
-                    <IconPhoto size={16} />
+                  <ActionIcon 
+                    {...props} 
+                    variant="subtle" 
+                    size="lg" 
+                    color="gray"
+                    style={{
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--secondary)',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                    }}
+                  >
+                    <IconPhoto size={18} />
                   </ActionIcon>
                 )}
               </FileButton>
@@ -297,8 +406,13 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                 onClick={sendMessage}
                 loading={isLoading}
                 disabled={!inputText.trim() && !inputImage}
+                style={{
+                  borderRadius: '10px',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  border: 'none'
+                }}
               >
-                <IconSend size={16} />
+                <IconSend size={18} />
               </ActionIcon>
             </Group>
           </Group>

@@ -1,7 +1,7 @@
 'use client';
 
-import { ActionIcon, AppShell, Group, Text } from '@mantine/core';
-import { IconHelp, IconPalette, IconSettings } from '@tabler/icons-react';
+import { ActionIcon, AppShell, Group } from '@mantine/core';
+import { IconHelp, IconSettings } from '@tabler/icons-react';
 import { useState } from 'react';
 import ChatInterface from './components/ChatInterface';
 import EditorView from './components/EditorView';
@@ -19,17 +19,23 @@ export default function Home() {
       aside={{ width: 350, breakpoint: 'sm' }}
       padding={0}
     >
-      <AppShell.Header px="md">
+      <AppShell.Header px="md" style={{ backgroundColor: '#000000', borderBottom: '1px solid #333333' }}>
         <Group h="100%" justify="space-between">
           <Group>
-            <IconPalette size={24} color="var(--primary)" />
-            <Text size="xl" fw={700} c="var(--primary)">MagicBanana</Text>
+            <img 
+              src="/logo.svg" 
+              alt="MagicBanana" 
+              style={{ 
+                height: '24px', 
+                width: 'auto'
+              }} 
+            />
           </Group>
           <Group>
-            <ActionIcon variant="subtle" size="lg">
+            <ActionIcon variant="subtle" size="lg" color="white">
               <IconSettings size={18} />
             </ActionIcon>
-            <ActionIcon variant="subtle" size="lg">
+            <ActionIcon variant="subtle" size="lg" color="white">
               <IconHelp size={18} />
             </ActionIcon>
           </Group>

@@ -57,10 +57,16 @@ export async function POST(request: NextRequest) {
 
         let textResponse = '';
         let imageData: { data: string; mimeType: string } | null = null;
+        let usageMetadata: any = null;
 
         for await (const chunk of response) {
             if (!chunk.candidates || !chunk.candidates[0].content || !chunk.candidates[0].content.parts) {
                 continue;
+            }
+
+            // Capture usage metadata from the last chunk
+            if (chunk.usageMetadata) {
+                usageMetadata = chunk.usageMetadata;
             }
 
             // Check for inline image data
@@ -75,9 +81,48 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Calculate cost based on token usage
+        let cost = null;
+        if (usageMetadata) {
+            const inputTokens = usageMetadata.promptTokenCount || 0;
+            const outputTokens = usageMetadata.candidatesTokenCount || 0;
+
+            // Get image tokens specifically from modality details
+            let imageTokens = 0;
+            if (usageMetadata.promptTokensDetails) {
+                const imageDetail = usageMetadata.promptTokensDetails.find((detail: any) => detail.modality === 'IMAGE');
+                if (imageDetail) {
+                    imageTokens = imageDetail.tokenCount;
+                }
+            }
+
+            // Pricing: 
+            // - Input text tokens: $0.30 per 1M tokens
+            // - Output text tokens: $2.50 per 1M tokens  
+            // - Image tokens: $0.039 per 1M tokens
+            const inputTextTokens = inputTokens - imageTokens; // Subtract image tokens from total input
+            const inputTextCost = (inputTextTokens / 1000000) * 0.30;
+            const outputTextCost = (outputTokens / 1000000) * 2.50;
+            const imageCost = (imageTokens / 1000000) * 0.039;
+            const totalCost = inputTextCost + outputTextCost + imageCost;
+
+            cost = {
+                inputTokens: inputTextTokens,
+                outputTokens,
+                imageTokens,
+                totalTokens: usageMetadata.totalTokenCount || (inputTokens + outputTokens),
+                inputCost: inputTextCost,
+                outputCost: outputTextCost,
+                imageCost,
+                totalCost,
+                formattedCost: `$${totalCost.toFixed(6)}`
+            };
+        }
+
         return NextResponse.json({
             text: textResponse,
             image: imageData,
+            cost,
         });
 
     } catch (error) {

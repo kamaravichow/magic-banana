@@ -1,8 +1,20 @@
 'use client';
 
-import { ActionIcon, Avatar, Badge, Box, FileButton, Group, Image, ScrollArea, Stack, Text, Textarea } from '@mantine/core';
-import { IconPhoto, IconRobot, IconSend, IconSparkles, IconUser, IconX } from '@tabler/icons-react';
+import { ActionIcon, Avatar, Badge, Box, Divider, FileButton, Group, Image, Modal, ScrollArea, Stack, Table, Text, Textarea } from '@mantine/core';
+import { IconInfoCircle, IconPhoto, IconRobot, IconSend, IconSparkles, IconUser, IconX } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
+
+interface CostInfo {
+  inputTokens: number;
+  outputTokens: number;
+  imageTokens: number;
+  totalTokens: number;
+  inputCost: number;
+  outputCost: number;
+  imageCost: number;
+  totalCost: number;
+  formattedCost: string;
+}
 
 interface Message {
   id: string;
@@ -10,6 +22,7 @@ interface Message {
   text: string;
   image?: string;
   timestamp: Date;
+  cost?: CostInfo;
 }
 
 interface ChatInterfaceProps {
@@ -21,6 +34,8 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
   const [inputText, setInputText] = useState('');
   const [inputImage, setInputImage] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [costModalOpen, setCostModalOpen] = useState(false);
+  const [selectedMessageCost, setSelectedMessageCost] = useState<CostInfo | null>(null);
   const resetRef = useRef<() => void>(null);
 
   const handleImageUpload = (file: File | null) => {
@@ -74,6 +89,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
           type: 'assistant',
           text: result.text,
           timestamp: new Date(),
+          cost: result.cost || undefined,
         };
         setMessages(prev => [...prev, assistantMessage]);
       }
@@ -100,6 +116,11 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
       event.preventDefault();
       sendMessage();
     }
+  };
+
+  const openCostModal = (cost: CostInfo) => {
+    setSelectedMessageCost(cost);
+    setCostModalOpen(true);
   };
 
   return (
@@ -230,22 +251,44 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                     </Text>
                   )}
                 </Box>
-                <Text 
-                  size="xs" 
+                <Group 
+                  justify={message.type === 'user' ? 'flex-end' : 'flex-start'}
+                  gap="xs"
                   style={{ 
-                    opacity: 0.6,
                     marginTop: '4px',
                     marginLeft: message.type === 'user' ? '0' : '4px',
-                    marginRight: message.type === 'user' ? '4px' : '0',
-                    textAlign: message.type === 'user' ? 'right' : 'left',
-                    color: 'var(--primary-light)'
+                    marginRight: message.type === 'user' ? '4px' : '0'
                   }}
                 >
-                  {message.timestamp.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </Text>
+                  <Text 
+                    size="xs" 
+                    style={{ 
+                      opacity: 0.6,
+                      color: 'var(--primary-light)'
+                    }}
+                  >
+                    {message.timestamp.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </Text>
+                  {message.cost && (
+                    <ActionIcon
+                      size="xs"
+                      variant="subtle"
+                      color="gray"
+                      onClick={() => openCostModal(message.cost!)}
+                      style={{
+                        opacity: 0.6,
+                        '&:hover': {
+                          opacity: 1
+                        }
+                      }}
+                    >
+                      <IconInfoCircle size={12} />
+                    </ActionIcon>
+                  )}
+                </Group>
               </Box>
             </Group>
           ))}
@@ -310,6 +353,68 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
           )}
         </Stack>
       </ScrollArea>
+
+      {/* Cost Modal */}
+      <Modal
+        opened={costModalOpen}
+        onClose={() => setCostModalOpen(false)}
+        title="Cost Breakdown"
+        size="md"
+      >
+        {selectedMessageCost && (
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              Detailed cost breakdown for this AI response
+            </Text>
+            
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Item</Table.Th>
+                  <Table.Th>Tokens</Table.Th>
+                  <Table.Th>Rate</Table.Th>
+                  <Table.Th>Cost</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                <Table.Tr>
+                  <Table.Td>Input Text</Table.Td>
+                  <Table.Td>{selectedMessageCost.inputTokens.toLocaleString()}</Table.Td>
+                  <Table.Td>$0.30 / 1M tokens</Table.Td>
+                  <Table.Td>${selectedMessageCost.inputCost.toFixed(6)}</Table.Td>
+                </Table.Tr>
+                <Table.Tr>
+                  <Table.Td>Output Text</Table.Td>
+                  <Table.Td>{selectedMessageCost.outputTokens.toLocaleString()}</Table.Td>
+                  <Table.Td>$2.50 / 1M tokens</Table.Td>
+                  <Table.Td>${selectedMessageCost.outputCost.toFixed(6)}</Table.Td>
+                </Table.Tr>
+                {selectedMessageCost.imageTokens > 0 && (
+                  <Table.Tr>
+                    <Table.Td>Image Tokens</Table.Td>
+                    <Table.Td>{selectedMessageCost.imageTokens.toLocaleString()}</Table.Td>
+                    <Table.Td>$0.039 / 1M tokens</Table.Td>
+                    <Table.Td>${selectedMessageCost.imageCost.toFixed(6)}</Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+            
+            <Divider />
+            
+            <Group justify="space-between">
+              <Text fw={600}>Total Cost:</Text>
+              <Text fw={600} size="lg">{selectedMessageCost.formattedCost}</Text>
+            </Group>
+            
+            <Text size="xs" c="dimmed">
+              * Costs are calculated based on Gemini 2.5 Flash pricing
+              <br />
+              * Text: $0.30/1M input, $2.50/1M output • Images: $0.039/1M tokens
+            </Text>
+          </Stack>
+        )}
+      </Modal>
 
       {/* Input Area */}
       <Box p="md" style={{ borderTop: '1px solid var(--border-color)' }}>

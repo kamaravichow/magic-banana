@@ -6,13 +6,25 @@ export async function POST(request: NextRequest) {
         const formData = await request.formData();
         const prompt = formData.get('prompt') as string;
         const imageFile = formData.get('image') as File | null;
+        const customApiKey = formData.get('customApiKey') as string | null;
 
         if (!prompt) {
             return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
         }
 
+        // Use custom API key if provided, otherwise fall back to environment variable
+        const apiKey = customApiKey && customApiKey.trim()
+            ? customApiKey.trim()
+            : process.env.GEMINI_API_KEY!;
+
+        if (!apiKey) {
+            return NextResponse.json({
+                error: 'No API key available. Please set GEMINI_API_KEY or provide a custom key.'
+            }, { status: 400 });
+        }
+
         const ai = new GoogleGenAI({
-            apiKey: process.env.GEMINI_API_KEY!,
+            apiKey: apiKey,
         });
 
         const config = {

@@ -5,9 +5,11 @@ import { IconHelp, IconSettings } from '@tabler/icons-react';
 import { useState } from 'react';
 import ChatInterface from './components/ChatInterface';
 import EditorView from './components/EditorView';
+import SettingsModal from './components/SettingsModal';
 
 export default function Home() {
   const [generatedImage, setGeneratedImage] = useState<{ data: string; mimeType: string } | null>(null);
+  const [settingsOpened, setSettingsOpened] = useState(false);
 
   const handleImageGenerated = (imageData: { data: string; mimeType: string }) => {
     setGeneratedImage(imageData);
@@ -32,7 +34,12 @@ export default function Home() {
             />
           </Group>
           <Group>
-            <ActionIcon variant="subtle" size="lg" color="white">
+            <ActionIcon 
+              variant="subtle" 
+              size="lg" 
+              color="white"
+              onClick={() => setSettingsOpened(true)}
+            >
               <IconSettings size={18} />
             </ActionIcon>
             <ActionIcon variant="subtle" size="lg" color="white">
@@ -55,6 +62,11 @@ export default function Home() {
       >
         <ChatInterface onImageGenerated={handleImageGenerated} />
       </AppShell.Aside>
+
+      <SettingsModal 
+        opened={settingsOpened} 
+        onClose={() => setSettingsOpened(false)} 
+      />
     </AppShell>
   );
 }

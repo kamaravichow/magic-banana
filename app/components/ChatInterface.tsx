@@ -3,6 +3,7 @@
 import { ActionIcon, Avatar, Badge, Box, Divider, FileButton, Group, Image, Modal, ScrollArea, Stack, Table, Text, Textarea } from '@mantine/core';
 import { IconInfoCircle, IconPhoto, IconRobot, IconSend, IconSparkles, IconUser, IconX } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
+import { COOKIE_NAMES, cookieUtils } from '../utils/cookies';
 
 interface CostInfo {
   inputTokens: number;
@@ -67,6 +68,12 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
       formData.append('prompt', inputText);
       if (inputImage) {
         formData.append('image', inputImage);
+      }
+      
+      // Add custom API key if available
+      const customApiKey = cookieUtils.get(COOKIE_NAMES.GEMINI_API_KEY);
+      if (customApiKey) {
+        formData.append('customApiKey', customApiKey);
       }
 
       const response = await fetch('/api/generate-image', {

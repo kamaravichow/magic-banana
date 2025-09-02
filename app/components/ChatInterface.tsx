@@ -4,6 +4,7 @@ import { ActionIcon, Avatar, Badge, Box, Divider, FileButton, Group, Image, Moda
 import { IconInfoCircle, IconPhoto, IconRobot, IconSend, IconSparkles, IconUser, IconX } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { COOKIE_NAMES, cookieUtils } from '../utils/cookies';
+import ImagePreviewModal from './ImagePreviewModal';
 
 interface CostInfo {
   inputTokens: number;
@@ -23,6 +24,7 @@ interface Message {
   type: 'user' | 'assistant';
   text: string;
   image?: string;
+  images?: string[];
   timestamp: Date;
   cost?: CostInfo;
 }
@@ -35,13 +37,22 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [inputImage, setInputImage] = useState<File | null>(null);
+  const [inputImages, setInputImages] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [costModalOpen, setCostModalOpen] = useState(false);
   const [selectedMessageCost, setSelectedMessageCost] = useState<CostInfo | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [previewImageSrc, setPreviewImageSrc] = useState<string | null>(null);
+  const [previewImageAlt, setPreviewImageAlt] = useState('');
   const resetRef = useRef<() => void>(null);
 
   const handleImageUpload = (file: File | null) => {
     setInputImage(file);
+  };
+
+  const handleMultipleImageUpload = (files: File[]) => {
+    setInputImages(prev => [...prev, ...files]);
   };
 
   const removeImage = () => {
@@ -49,14 +60,24 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
     resetRef.current?.();
   };
 
-  const sendMessage = async () => {
-    if (!inputText.trim() && !inputImage) return;
+  const removeImageFromList = (index: number) => {
+    setInputImages(prev => prev.filter((_, i) => i !== index));
+  };
 
+  const clearAllImages = () => {
+    setInputImages([]);
+  };
+
+  const sendMessage = async () => {
+    if (!inputText.trim() && inputImages.length === 0) return;
+
+    const imagesToSend = inputImages;
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
       text: inputText,
-      image: inputImage ? URL.createObjectURL(inputImage) : undefined,
+      images: imagesToSend.length > 0 ? imagesToSend.map(img => URL.createObjectURL(img)) : undefined,
       timestamp: new Date(),
     };
 
@@ -66,9 +87,12 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
     try {
       const formData = new FormData();
       formData.append('prompt', inputText);
-      if (inputImage) {
-        formData.append('image', inputImage);
-      }
+      
+      // Handle multiple images or single image
+      imagesToSend.forEach((image, index) => {
+        formData.append(`image_${index}`, image);
+      });
+      formData.append('imageCount', imagesToSend.length.toString());
       
       // Add custom API key if available
       const customApiKey = cookieUtils.get(COOKIE_NAMES.GEMINI_API_KEY);
@@ -114,7 +138,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
     } finally {
       setIsLoading(false);
       setInputText('');
-      setInputImage(null);
+      setInputImages([]);
       resetRef.current?.();
     }
   };
@@ -131,6 +155,47 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
     setCostModalOpen(true);
   };
 
+  const openImagePreview = (src: string, alt: string = 'Image') => {
+    setPreviewImageSrc(src);
+    setPreviewImageAlt(alt);
+    setImagePreviewOpen(true);
+  };
+
+  const closeImagePreview = () => {
+    setImagePreviewOpen(false);
+    setPreviewImageSrc(null);
+    setPreviewImageAlt('');
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set isDragOver to false if we're leaving the chat area completely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+      // Always add to the multiple images array for consistency
+      handleMultipleImageUpload(imageFiles);
+    }
+  };
+
   return (
     <Box h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
@@ -144,11 +209,63 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
       
       {/* Messages */}
       <ScrollArea 
-        style={{ flex: 1 }} 
+        style={{ 
+          flex: 1,
+          position: 'relative',
+          transition: 'all 0.2s ease'
+        }} 
         p="lg" 
         scrollbars="y"
         offsetScrollbars
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
+        {/* Drag overlay */}
+        {isDragOver && (
+          <Box
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              border: '2px dashed var(--primary)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              margin: '16px',
+              pointerEvents: 'none'
+            }}
+          >
+            <Stack align="center" gap="md">
+              <Box
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0.9
+                }}
+              >
+                <IconPhoto size={28} color="white" />
+              </Box>
+              <Text size="lg" fw={600} c="var(--primary)">
+                Drop images here
+              </Text>
+              <Text size="sm" c="dimmed" ta="center">
+                Release to add multiple images as context
+              </Text>
+            </Stack>
+          </Box>
+        )}
+
         <Stack gap="lg">
           {messages.length === 0 && (
             <Box ta="center" py="lg">
@@ -184,7 +301,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                     Ready to create
                   </Text>
                   <Text size="xs" c="dimmed" maw={260} ta="center" lh={1.3}>
-                    Upload an image and describe what you'd like me to do with it
+                    Upload or drag an image here and describe what you'd like me to do with it
                   </Text>
                 </Stack>
               </Stack>
@@ -235,22 +352,95 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                     position: 'relative'
                   }}
                 >
-                  {message.image && (
+                  {(message.image || message.images) && (
                     <Box
                       style={{
                         marginBottom: message.text ? '8px' : '0',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        border: '1px solid rgba(0, 0, 0, 0.1)',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                       }}
                     >
-                      <Image
-                        src={message.image}
-                        alt="User uploaded image"
-                        maw={220}
-                        style={{ display: 'block' }}
-                      />
+                      {message.images && message.images.length > 0 ? (
+                        message.images.length > 1 ? (
+                          // Multiple images in horizontal grid
+                          <Group gap="xs" wrap="nowrap" style={{ overflowX: 'auto', paddingBottom: '4px' }}>
+                            {message.images.map((imgSrc, index) => (
+                              <Box
+                                key={index}
+                                style={{
+                                  borderRadius: '12px',
+                                  overflow: 'hidden',
+                                  border: '1px solid rgba(0, 0, 0, 0.1)',
+                                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                  flexShrink: 0,
+                                  cursor: 'pointer',
+                                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                  '&:hover': {
+                                    transform: 'scale(1.02)',
+                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)'
+                                  }
+                                }}
+                                onClick={() => openImagePreview(imgSrc, `User uploaded image ${index + 1}`)}
+                              >
+                                <Image
+                                  src={imgSrc}
+                                  alt={`User uploaded image ${index + 1}`}
+                                  w={120}
+                                  h={120}
+                                  fit="cover"
+                                  style={{ display: 'block' }}
+                                />
+                              </Box>
+                            ))}
+                          </Group>
+                        ) : (
+                          // Single image from images array
+                          <Box
+                            style={{
+                              borderRadius: '12px',
+                              overflow: 'hidden',
+                              border: '1px solid rgba(0, 0, 0, 0.1)',
+                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                              cursor: 'pointer',
+                              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                              '&:hover': {
+                                transform: 'scale(1.02)',
+                                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)'
+                              }
+                            }}
+                            onClick={() => openImagePreview(message.images![0], 'User uploaded image')}
+                          >
+                            <Image
+                              src={message.images[0]}
+                              alt="User uploaded image"
+                              maw={220}
+                              style={{ display: 'block' }}
+                            />
+                          </Box>
+                        )
+                      ) : message.image && (
+                        // Legacy single image support
+                        <Box
+                          style={{
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            border: '1px solid rgba(0, 0, 0, 0.1)',
+                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                            '&:hover': {
+                              transform: 'scale(1.02)',
+                              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)'
+                            }
+                          }}
+                          onClick={() => openImagePreview(message.image!, 'User uploaded image')}
+                        >
+                          <Image
+                            src={message.image}
+                            alt="User uploaded image"
+                            maw={220}
+                            style={{ display: 'block' }}
+                          />
+                        </Box>
+                      )}
                     </Box>
                   )}
                   {message.text && (
@@ -432,10 +622,19 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
         )}
       </Modal>
 
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        src={previewImageSrc}
+        alt={previewImageAlt}
+        opened={imagePreviewOpen}
+        onClose={closeImagePreview}
+      />
+
       {/* Input Area */}
       <Box p="md" style={{ borderTop: '1px solid var(--border-color)' }}>
         <Stack gap="xs">
-          {inputImage && (
+          {/* Multiple Images Grid */}
+          {inputImages.length > 0 && (
             <Box
               p="sm"
               style={{
@@ -445,33 +644,15 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
               }}
             >
-              <Group justify="space-between" align="center">
-                <Group gap="sm">
-                  <Box
-                    style={{
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: '1px solid var(--border-color)',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
-                    }}
-                  >
-                    <Image
-                      src={URL.createObjectURL(inputImage)}
-                      alt="Selected image"
-                      w={36}
-                      h={36}
-                      style={{ display: 'block' }}
-                    />
-                  </Box>
-                  <Text size="sm" c="dimmed" truncate maw={180}>
-                    {inputImage.name}
-                  </Text>
-                </Group>
+              <Group justify="space-between" align="flex-start" mb="xs">
+                <Text size="sm" fw={500}>
+                  {inputImages.length} image{inputImages.length !== 1 ? 's' : ''} selected
+                </Text>
                 <ActionIcon 
                   size="sm" 
                   variant="subtle" 
                   color="gray" 
-                  onClick={removeImage}
+                  onClick={clearAllImages}
                   style={{
                     borderRadius: '6px',
                     '&:hover': {
@@ -482,12 +663,59 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                   <IconX size={14} />
                 </ActionIcon>
               </Group>
+              
+              <Group gap="xs" wrap="nowrap" style={{ overflowX: 'auto', paddingBottom: '4px' }}>
+                {inputImages.map((img, index) => (
+                  <Box
+                    key={index}
+                    style={{
+                      position: 'relative',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border-color)',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Image
+                      src={URL.createObjectURL(img)}
+                      alt={`Selected image ${index + 1}`}
+                      w={60}
+                      h={60}
+                      fit="cover"
+                      style={{ 
+                        display: 'block',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openImagePreview(URL.createObjectURL(img), `Selected image ${index + 1}`);
+                      }}
+                    />
+                    <ActionIcon
+                      size="xs"
+                      variant="filled"
+                      color="dark"
+                      onClick={() => removeImageFromList(index)}
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        borderRadius: '50%',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+                      }}
+                    >
+                      <IconX size={10} />
+                    </ActionIcon>
+                  </Box>
+                ))}
+              </Group>
             </Box>
           )}
           
           <Group align="flex-end" gap="xs">
             <Textarea
-              placeholder="Describe what you want to do..."
+              placeholder="Say it, we edit."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyPress}
@@ -501,8 +729,18 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
             <Group gap="xs">
               <FileButton
                 resetRef={resetRef}
-                onChange={handleImageUpload}
+                onChange={(files) => {
+                  if (files) {
+                    if (Array.isArray(files)) {
+                      handleMultipleImageUpload(files);
+                    } else {
+                      // Convert single file to array for consistency
+                      handleMultipleImageUpload([files]);
+                    }
+                  }
+                }}
                 accept="image/*"
+                multiple
               >
                 {(props) => (
                   <ActionIcon 
@@ -526,7 +764,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                 color="dark"
                 onClick={sendMessage}
                 loading={isLoading}
-                disabled={!inputText.trim() && !inputImage}
+                disabled={!inputText.trim() && inputImages.length === 0}
                 style={{
                   borderRadius: '10px',
                   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',

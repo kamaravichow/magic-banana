@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon, Box, Divider, Group, Modal, NumberInput, Slider, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Box, Divider, Group, Loader, Modal, Notification, NumberInput, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import {
     IconAdjustments,
     IconDownload,
@@ -10,10 +10,12 @@ import {
     IconResize,
     IconRotateClockwise,
     IconRuler,
+    IconSparkles,
     IconZoomIn,
     IconZoomOut
 } from '@tabler/icons-react';
 import React, { useCallback, useRef, useState } from 'react';
+import { COOKIE_NAMES, cookieUtils } from '../utils/cookies';
 
 interface AdvancedImageViewerProps {
   src: string;
@@ -24,6 +26,7 @@ interface AdvancedImageViewerProps {
   enableGestures?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  onImageEnhanced?: (enhancedImageData: { data: string; mimeType: string }) => void;
 }
 
 interface Transform {
@@ -50,7 +53,8 @@ export default function AdvancedImageViewer({
   showRulers = true,
   enableGestures = true,
   className,
-  style
+  style,
+  onImageEnhanced
 }: AdvancedImageViewerProps) {
   const [transform, setTransform] = useState<Transform>({
     scale: 1,
@@ -74,6 +78,9 @@ export default function AdvancedImageViewer({
   const [showAdjustments, setShowAdjustments] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const [enhanceSuccess, setEnhanceSuccess] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -161,7 +168,7 @@ export default function AdvancedImageViewer({
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!enableGestures) return;
     if (e.touches.length === 2) {
-      setLastTouchDistance(getTouchDistance(e.touches));
+      setLastTouchDistance(getTouchDistance(e.touches as any));
     } else if (e.touches.length === 1) {
       setIsDragging(true);
       const touch = e.touches[0];
@@ -174,7 +181,7 @@ export default function AdvancedImageViewer({
     e.preventDefault();
     
     if (e.touches.length === 2) {
-      const distance = getTouchDistance(e.touches);
+      const distance = getTouchDistance(e.touches as any);
       if (lastTouchDistance > 0) {
         const scale = distance / lastTouchDistance;
         setTransform(prev => ({ 
@@ -206,6 +213,58 @@ export default function AdvancedImageViewer({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Enhance image function
+  const enhanceImage = async () => {
+    if (!src || isEnhancing) return;
+
+    setIsEnhancing(true);
+    setEnhanceError(null);
+    setEnhanceSuccess(false);
+
+    try {
+      // Convert the image source to a blob and then to a file
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const file = new File([blob], 'image.png', { type: blob.type });
+
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Add custom API key if available
+      const customApiKey = cookieUtils.get(COOKIE_NAMES.REPLICATE_API_KEY);
+      if (customApiKey) {
+        formData.append('customApiKey', customApiKey);
+      }
+
+      const enhanceResponse = await fetch('/api/enhance-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!enhanceResponse.ok) {
+        const errorData = await enhanceResponse.json();
+        throw new Error(errorData.error || 'Failed to enhance image');
+      }
+
+      const result = await enhanceResponse.json();
+
+      if (result.success && result.enhancedImage) {
+        setEnhanceSuccess(true);
+        if (onImageEnhanced) {
+          onImageEnhanced(result.enhancedImage);
+        }
+      } else {
+        throw new Error('Enhancement completed but no enhanced image was returned');
+      }
+
+    } catch (error) {
+      console.error('Error enhancing image:', error);
+      setEnhanceError(error instanceof Error ? error.message : 'Failed to enhance image');
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   // Reset all transforms and adjustments
@@ -306,6 +365,31 @@ export default function AdvancedImageViewer({
         ...style
       }}
     >
+      {/* Error notification */}
+      {enhanceError && (
+        <Box style={{ position: 'absolute', top: 16, left: 16, right: 16, zIndex: 1000 }}>
+          <Notification
+            color="red"
+            onClose={() => setEnhanceError(null)}
+            title="Enhancement Failed"
+          >
+            {enhanceError}
+          </Notification>
+        </Box>
+      )}
+
+      {/* Success notification */}
+      {enhanceSuccess && (
+        <Box style={{ position: 'absolute', top: 16, left: 16, right: 16, zIndex: 1000 }}>
+          <Notification
+            color="green"
+            onClose={() => setEnhanceSuccess(false)}
+            title="Enhancement Complete"
+          >
+            Image has been enhanced and sent to the editor!
+          </Notification>
+        </Box>
+      )}
       {/* Rulers */}
       {showRulers && imageLoaded && (
         <>
@@ -411,6 +495,21 @@ export default function AdvancedImageViewer({
             <Tooltip label="Adjustments">
               <ActionIcon variant="subtle" onClick={() => setShowAdjustments(true)}>
                 <IconAdjustments size={16} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Divider orientation="vertical" />
+
+            {/* AI Enhancement */}
+            <Tooltip label="Enhance with AI">
+              <ActionIcon 
+                variant="subtle" 
+                color="blue" 
+                onClick={enhanceImage}
+                disabled={isEnhancing}
+                loading={isEnhancing}
+              >
+                {isEnhancing ? <Loader size={16} /> : <IconSparkles size={16} />}
               </ActionIcon>
             </Tooltip>
             

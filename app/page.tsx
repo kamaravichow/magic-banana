@@ -50,7 +50,7 @@ export default function Home() {
       </AppShell.Header>
 
       <AppShell.Main style={{ backgroundColor: 'var(--canvas-bg)', height: 'calc(100vh - 60px)' }}>
-        <EditorView generatedImage={generatedImage} />
+        <EditorView generatedImage={generatedImage} onImageEnhanced={handleImageGenerated} />
       </AppShell.Main>
 
       <AppShell.Aside 

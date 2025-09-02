@@ -21,12 +21,14 @@ interface SettingsModalProps {
 
 interface SettingsFormData {
   geminiApiKey: string;
+  replicateApiKey: string;
 }
 
 export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
   const form = useForm<SettingsFormData>({
     initialValues: {
       geminiApiKey: '',
+      replicateApiKey: '',
     },
     validate: {
       geminiApiKey: (value) => {
@@ -39,35 +41,61 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
         }
         return null;
       },
+      replicateApiKey: (value) => {
+        if (!value.trim()) return null; // Allow empty for using default
+        if (!value.startsWith('r8_')) {
+          return 'Replicate API key should start with "r8_"';
+        }
+        if (value.length < 40) {
+          return 'API key appears to be too short';
+        }
+        return null;
+      },
     },
   });
 
-  // Load existing API key from cookie when modal opens
+  // Load existing API keys from cookies when modal opens
   useEffect(() => {
     if (opened) {
-      const existingKey = cookieUtils.get(COOKIE_NAMES.GEMINI_API_KEY);
-      form.setFieldValue('geminiApiKey', existingKey || '');
+      const existingGeminiKey = cookieUtils.get(COOKIE_NAMES.GEMINI_API_KEY);
+      const existingReplicateKey = cookieUtils.get(COOKIE_NAMES.REPLICATE_API_KEY);
+      form.setFieldValue('geminiApiKey', existingGeminiKey || '');
+      form.setFieldValue('replicateApiKey', existingReplicateKey || '');
     }
   }, [opened]);
 
   const handleSave = (values: SettingsFormData) => {
     if (values.geminiApiKey.trim()) {
-      // Save the API key to cookie
+      // Save the Gemini API key to cookie
       cookieUtils.set(COOKIE_NAMES.GEMINI_API_KEY, values.geminiApiKey.trim(), 90); // 90 days
     } else {
       // Remove the cookie if empty (use default)
       cookieUtils.delete(COOKIE_NAMES.GEMINI_API_KEY);
     }
+
+    if (values.replicateApiKey.trim()) {
+      // Save the Replicate API key to cookie
+      cookieUtils.set(COOKIE_NAMES.REPLICATE_API_KEY, values.replicateApiKey.trim(), 90); // 90 days
+    } else {
+      // Remove the cookie if empty (use default)
+      cookieUtils.delete(COOKIE_NAMES.REPLICATE_API_KEY);
+    }
     
     onClose();
   };
 
-  const handleClearKey = () => {
+  const handleClearGeminiKey = () => {
     form.setFieldValue('geminiApiKey', '');
     cookieUtils.delete(COOKIE_NAMES.GEMINI_API_KEY);
   };
 
-  const hasExistingKey = cookieUtils.exists(COOKIE_NAMES.GEMINI_API_KEY);
+  const handleClearReplicateKey = () => {
+    form.setFieldValue('replicateApiKey', '');
+    cookieUtils.delete(COOKIE_NAMES.REPLICATE_API_KEY);
+  };
+
+  const hasExistingGeminiKey = cookieUtils.exists(COOKIE_NAMES.GEMINI_API_KEY);
+  const hasExistingReplicateKey = cookieUtils.exists(COOKIE_NAMES.REPLICATE_API_KEY);
 
   return (
     <Modal
@@ -94,13 +122,13 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
         <Stack gap="md">
           <Alert
             icon={<IconInfoCircle size={16} />}
-            title="Custom API Key"
+            title="Custom API Keys"
             color="blue"
             variant="light"
           >
             <Text size="sm">
-              Enter your own Gemini API key to use instead of the default one. 
-              Leave empty to use the default key. Your key will be stored locally in your browser.
+              Enter your own API keys to use instead of the default ones. 
+              Leave empty to use the default keys. Your keys will be stored locally in your browser.
             </Text>
           </Alert>
 
@@ -131,27 +159,66 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
             }}
           />
 
-          {hasExistingKey && (
+          <PasswordInput
+            label="Replicate API Key (for Image Enhancement)"
+            placeholder="r8_..."
+            leftSection={<IconKey size={16} />}
+            description="Get your API key from Replicate dashboard for image enhancement features"
+            {...form.getInputProps('replicateApiKey')}
+            styles={{
+              label: {
+                color: 'var(--foreground)',
+                fontSize: '14px',
+                fontWeight: 500,
+              },
+              description: {
+                color: 'var(--primary-light)',
+                fontSize: '12px',
+              },
+              input: {
+                backgroundColor: 'var(--secondary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--foreground)',
+                '&:focus': {
+                  borderColor: 'var(--primary)',
+                },
+              },
+            }}
+          />
+
+          {(hasExistingGeminiKey || hasExistingReplicateKey) && (
             <Alert
               color="green"
               variant="light"
             >
               <Text size="sm">
-                ✓ Custom API key is currently saved and will be used for requests.
+                {hasExistingGeminiKey && '✓ Custom Gemini API key is saved'}
+                {hasExistingGeminiKey && hasExistingReplicateKey && <br />}
+                {hasExistingReplicateKey && '✓ Custom Replicate API key is saved'}
               </Text>
             </Alert>
           )}
 
           <Group justify="space-between" mt="md">
             <Group>
-              {hasExistingKey && (
+              {hasExistingGeminiKey && (
                 <Button
                   variant="light"
                   color="red"
                   size="sm"
-                  onClick={handleClearKey}
+                  onClick={handleClearGeminiKey}
                 >
-                  Clear Saved Key
+                  Clear Gemini Key
+                </Button>
+              )}
+              {hasExistingReplicateKey && (
+                <Button
+                  variant="light"
+                  color="red"
+                  size="sm"
+                  onClick={handleClearReplicateKey}
+                >
+                  Clear Replicate Key
                 </Button>
               )}
             </Group>

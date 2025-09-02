@@ -10,6 +10,7 @@ interface ImagePreviewModalProps {
   opened: boolean;
   onClose: () => void;
   title?: string;
+  onImageEnhanced?: (enhancedImageData: { data: string; mimeType: string }) => void;
 }
 
 export default function ImagePreviewModal({
@@ -17,7 +18,8 @@ export default function ImagePreviewModal({
   alt = "Image preview",
   opened,
   onClose,
-  title
+  title,
+  onImageEnhanced
 }: ImagePreviewModalProps) {
   if (!src) return null;
 
@@ -68,13 +70,14 @@ export default function ImagePreviewModal({
         variant: 'subtle'
       }}
     >
-      <Box style={{ height: 'calc(95vh - 70px)' }}>
+      <Box style={{ height: 'calc(95vh - 70px)', position: 'relative' }}>
         <AdvancedImageViewer
           src={src}
           alt={alt}
           showToolbar={true}
           showRulers={true}
           enableGestures={true}
+          onImageEnhanced={onImageEnhanced}
         />
       </Box>
     </Modal>

@@ -7,9 +7,10 @@ import AdvancedImageViewer from './AdvancedImageViewer';
 
 interface EditorViewProps {
   generatedImage: { data: string; mimeType: string } | null;
+  onImageEnhanced?: (enhancedImageData: { data: string; mimeType: string }) => void;
 }
 
-export default function EditorView({ generatedImage }: EditorViewProps) {
+export default function EditorView({ generatedImage, onImageEnhanced }: EditorViewProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Convert base64 image data to blob URL when new image is generated
@@ -47,6 +48,7 @@ export default function EditorView({ generatedImage }: EditorViewProps) {
           showRulers={true}
           enableGestures={true}
           style={{ height: '100%' }}
+          onImageEnhanced={onImageEnhanced}
         />
       ) : (
         <>

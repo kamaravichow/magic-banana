@@ -20,6 +20,7 @@ AI-enhanced image playground built with Next.js App Router, Mantine UI, and Goog
 
 - **Multimodal prompts**: Send text with an optional image to Gemini.
 - **Image generation/transform**: Receives inline image data when the model returns one.
+- **AI Image Enhancement**: Restore and enhance image quality using CodeFormer face restoration.
 - **Cost transparency**: Detailed token accounting and pricing shown in a modal.
 - **Beautiful UI**: Mantine `AppShell`, polished chat and editor panels.
 - **Canvas controls**: Zoom in/out, fit-to-screen, and one-click download.
@@ -33,6 +34,7 @@ AI-enhanced image playground built with Next.js App Router, Mantine UI, and Goog
 
 - Node.js 18+ recommended
 - A Google Gemini API key
+- A Replicate API key (optional, for image enhancement features)
 
 ### Install
 
@@ -48,6 +50,8 @@ Create `.env.local` in the project root:
 
 ```bash
 GEMINI_API_KEY=your_api_key_here
+# Optional: For image enhancement features
+REPLICATE_API_TOKEN=your_replicate_api_key_here
 ```
 
 ### Run
@@ -120,6 +124,36 @@ curl -s -X POST http://localhost:3000/api/generate-image \
   -F 'image=@/path/to/photo.png'
 ```
 
+### POST `/api/enhance-image`
+
+Enhance image quality using AI-powered face restoration via Replicate's CodeFormer.
+
+- **Content-Type**: `multipart/form-data`
+- **Body fields**:
+  - `image` (file, required) - Image to enhance
+  - `fidelity` (string, optional) - Enhancement fidelity (0.1-1.0, default: 0.7)
+  - `upscale` (string, optional) - Upscale factor (1-4, default: 2)
+  - `customApiKey` (string, optional) - Custom Replicate API key
+
+#### Response 200
+
+```json
+{
+  "success": true,
+  "enhancedImage": {
+    "data": "<base64>",
+    "mimeType": "image/png"
+  },
+  "originalImageUrl": "https://..."
+}
+```
+
+#### Errors
+
+- `400` — Missing `image` or invalid API key
+- `408` — Enhancement timeout (> 5 minutes)
+- `500` — Upstream or server error
+
 ---
 
 ## Project structure
@@ -127,8 +161,11 @@ curl -s -X POST http://localhost:3000/api/generate-image \
 ```text
 app/
   api/generate-image/route.ts    # Gemini streaming route, cost calculation
+  api/enhance-image/route.ts     # Replicate CodeFormer enhancement
   components/ChatInterface.tsx   # Chat UI, uploads, cost modal
   components/EditorView.tsx      # Canvas, zoom, download
+  components/ImagePreviewModal.tsx # Image preview with enhancement
+  components/SettingsModal.tsx   # API key management
   page.tsx                       # Layout wiring with Mantine AppShell
 public/
   logo.svg
@@ -146,14 +183,15 @@ public/
 
 ## Security notes
 
-- Keep `GEMINI_API_KEY` on the server (`.env.local`); never expose it in client bundles.
-- Requests to Gemini are proxied via the Next.js route; clients never call Gemini directly.
+- Keep `GEMINI_API_KEY` and `REPLICATE_API_TOKEN` on the server (`.env.local`); never expose them in client bundles.
+- Requests to Gemini and Replicate are proxied via Next.js routes; clients never call these APIs directly.
+- Custom API keys are stored locally in browser cookies and sent to server endpoints.
 
 ---
 
 ## Deploy
 
-- One-click deploy on Vercel. Ensure `GEMINI_API_KEY` is set in project environment variables.
+- One-click deploy on Vercel. Ensure `GEMINI_API_KEY` and optionally `REPLICATE_API_TOKEN` are set in project environment variables.
 
 ---
 

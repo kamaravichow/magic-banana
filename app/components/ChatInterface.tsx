@@ -601,6 +601,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
         alt={previewImageAlt}
         opened={imagePreviewOpen}
         onClose={closeImagePreview}
+        onImageEnhanced={onImageGenerated}
       />
 
       {/* Input Area */}

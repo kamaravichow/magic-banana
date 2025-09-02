@@ -54,4 +54,5 @@ export const cookieUtils = {
 // Cookie names constants
 export const COOKIE_NAMES = {
     GEMINI_API_KEY: 'gemini_api_key',
+    REPLICATE_API_KEY: 'replicate_api_key',
 } as const;

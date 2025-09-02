@@ -87,35 +87,40 @@ export async function POST(request: NextRequest) {
             const inputTokens = usageMetadata.promptTokenCount || 0;
             const outputTokens = usageMetadata.candidatesTokenCount || 0;
 
-            // Get image tokens specifically from modality details
-            let imageTokens = 0;
+            // Get input image tokens from modality details (for cost display purposes)
+            let inputImageTokens = 0;
             if (usageMetadata.promptTokensDetails) {
                 const imageDetail = usageMetadata.promptTokensDetails.find((detail: any) => detail.modality === 'IMAGE');
                 if (imageDetail) {
-                    imageTokens = imageDetail.tokenCount;
+                    inputImageTokens = imageDetail.tokenCount;
                 }
             }
 
             // Pricing: 
             // - Input text tokens: $0.30 per 1M tokens
             // - Output text tokens: $2.50 per 1M tokens  
-            // - Image tokens: $0.039 per 1M tokens
-            const inputTextTokens = inputTokens - imageTokens; // Subtract image tokens from total input
+            // - Generated images: $0.04 per image (flat rate)
+            const inputTextTokens = inputTokens - inputImageTokens; // Subtract image tokens from total input
             const inputTextCost = (inputTextTokens / 1000000) * 0.30;
             const outputTextCost = (outputTokens / 1000000) * 2.50;
-            const imageCost = (imageTokens / 1000000) * 0.039;
+
+            // Count generated images
+            const generatedImages = imageData ? 1 : 0;
+            const imageCost = generatedImages * 0.04;
+
             const totalCost = inputTextCost + outputTextCost + imageCost;
 
             cost = {
                 inputTokens: inputTextTokens,
                 outputTokens,
-                imageTokens,
+                inputImageTokens,
+                generatedImages,
                 totalTokens: usageMetadata.totalTokenCount || (inputTokens + outputTokens),
                 inputCost: inputTextCost,
                 outputCost: outputTextCost,
                 imageCost,
                 totalCost,
-                formattedCost: `$${totalCost.toFixed(6)}`
+                formattedCost: `$${totalCost.toFixed(4)}`
             };
         }
 

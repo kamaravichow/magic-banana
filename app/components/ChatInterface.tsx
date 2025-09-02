@@ -7,7 +7,8 @@ import { useRef, useState } from 'react';
 interface CostInfo {
   inputTokens: number;
   outputTokens: number;
-  imageTokens: number;
+  inputImageTokens: number;
+  generatedImages: number;
   totalTokens: number;
   inputCost: number;
   outputCost: number;
@@ -389,12 +390,20 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                   <Table.Td>$2.50 / 1M tokens</Table.Td>
                   <Table.Td>${selectedMessageCost.outputCost.toFixed(6)}</Table.Td>
                 </Table.Tr>
-                {selectedMessageCost.imageTokens > 0 && (
+                {selectedMessageCost.generatedImages > 0 && (
                   <Table.Tr>
-                    <Table.Td>Image Tokens</Table.Td>
-                    <Table.Td>{selectedMessageCost.imageTokens.toLocaleString()}</Table.Td>
-                    <Table.Td>$0.039 / 1M tokens</Table.Td>
-                    <Table.Td>${selectedMessageCost.imageCost.toFixed(6)}</Table.Td>
+                    <Table.Td>Generated Images</Table.Td>
+                    <Table.Td>{selectedMessageCost.generatedImages}</Table.Td>
+                    <Table.Td>$0.04 / image</Table.Td>
+                    <Table.Td>${selectedMessageCost.imageCost.toFixed(4)}</Table.Td>
+                  </Table.Tr>
+                )}
+                {selectedMessageCost.inputImageTokens > 0 && (
+                  <Table.Tr>
+                    <Table.Td>Input Images</Table.Td>
+                    <Table.Td>{selectedMessageCost.inputImageTokens.toLocaleString()} tokens</Table.Td>
+                    <Table.Td>Free</Table.Td>
+                    <Table.Td>$0.00</Table.Td>
                   </Table.Tr>
                 )}
               </Table.Tbody>
@@ -410,7 +419,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
             <Text size="xs" c="dimmed">
               * Costs are calculated based on Gemini 2.5 Flash pricing
               <br />
-              * Text: $0.30/1M input, $2.50/1M output • Images: $0.039/1M tokens
+              * Text: $0.30/1M input, $2.50/1M output • Generated Images: $0.04/image
             </Text>
           </Stack>
         )}

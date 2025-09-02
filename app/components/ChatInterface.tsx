@@ -1,7 +1,7 @@
 'use client';
 
-import { ActionIcon, Avatar, Badge, Box, Divider, FileButton, Group, Image, Modal, ScrollArea, Stack, Table, Text, Textarea } from '@mantine/core';
-import { IconInfoCircle, IconPhoto, IconRobot, IconSend, IconSparkles, IconUser, IconX } from '@tabler/icons-react';
+import { ActionIcon, Badge, Box, Divider, FileButton, Group, Image, Modal, ScrollArea, Stack, Table, Text, Textarea } from '@mantine/core';
+import { IconInfoCircle, IconPhoto, IconSend, IconSparkles, IconX } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { COOKIE_NAMES, cookieUtils } from '../utils/cookies';
 import ImagePreviewModal from './ImagePreviewModal';
@@ -317,25 +317,12 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                 marginBottom: '4px'
               }}
             >
-              <Avatar 
-                size={28}
-                color={message.type === 'user' ? 'dark' : 'gray'}
-                style={{ 
-                  flexShrink: 0,
-                  marginTop: '2px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid var(--border-color)'
-                }}
-              >
-                {message.type === 'user' ? <IconUser size={14} /> : <IconRobot size={14} />}
-              </Avatar>
-              
               <Box
                 style={{
                   position: 'relative',
-                  maxWidth: message.type === 'user' ? '75%' : '80%',
-                  marginLeft: message.type === 'user' ? '0' : '8px',
-                  marginRight: message.type === 'user' ? '8px' : '0'
+                  maxWidth: message.type === 'user' ? '85%' : '90%',
+                  marginLeft: message.type === 'user' ? 'auto' : '0',
+                  marginRight: message.type === 'user' ? '0' : 'auto'
                 }}
               >
                 <Box
@@ -453,9 +440,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
                   justify={message.type === 'user' ? 'flex-end' : 'flex-start'}
                   gap="xs"
                   style={{ 
-                    marginTop: '4px',
-                    marginLeft: message.type === 'user' ? '0' : '4px',
-                    marginRight: message.type === 'user' ? '4px' : '0'
+                    marginTop: '4px'
                   }}
                 >
                   <Text 
@@ -492,19 +477,7 @@ export default function ChatInterface({ onImageGenerated }: ChatInterfaceProps) 
           ))}
           {isLoading && (
             <Group align="flex-start" gap="xs" style={{ marginBottom: '4px' }}>
-              <Avatar 
-                size={28} 
-                color="gray"
-                style={{ 
-                  flexShrink: 0,
-                  marginTop: '2px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid var(--border-color)'
-                }}
-              >
-                <IconRobot size={14} />
-              </Avatar>
-              <Box style={{ marginLeft: '8px' }}>
+              <Box style={{ maxWidth: '90%' }}>
                 <Box
                   style={{
                     backgroundColor: 'var(--secondary)',

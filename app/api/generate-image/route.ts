@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const prompt = formData.get('prompt') as string;
-        const imageFile = formData.get('image') as File | null;
+        const imageCount = parseInt(formData.get('imageCount') as string || '0');
         const customApiKey = formData.get('customApiKey') as string | null;
 
         if (!prompt) {
@@ -40,18 +40,21 @@ export async function POST(request: NextRequest) {
             },
         ];
 
-        // Add image if provided
-        if (imageFile) {
-            const imageBuffer = await imageFile.arrayBuffer();
-            const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-            const mimeType = imageFile.type;
+        // Add multiple images if provided
+        for (let i = 0; i < imageCount; i++) {
+            const imageFile = formData.get(`image_${i}`) as File | null;
+            if (imageFile) {
+                const imageBuffer = await imageFile.arrayBuffer();
+                const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+                const mimeType = imageFile.type;
 
-            parts.push({
-                inlineData: {
-                    data: imageBase64,
-                    mimeType: mimeType,
-                },
-            });
+                parts.push({
+                    inlineData: {
+                        data: imageBase64,
+                        mimeType: mimeType,
+                    },
+                });
+            }
         }
 
         const contents = [

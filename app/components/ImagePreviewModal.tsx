@@ -33,7 +33,7 @@ export default function ImagePreviewModal({
       onClose={onClose}
       size="95vw"
       styles={{
-        modal: {
+        content: {
           height: '95vh',
           maxHeight: '95vh',
           padding: 0
@@ -66,8 +66,7 @@ export default function ImagePreviewModal({
         </Group>
       }
       closeButtonProps={{
-        size: 'sm',
-        variant: 'subtle'
+        size: 'sm'
       }}
     >
       <Box style={{ height: 'calc(95vh - 70px)', position: 'relative' }}>

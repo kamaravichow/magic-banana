@@ -441,7 +441,7 @@ export default function AdvancedImageViewer({
             
             <NumberInput
               value={Math.round(transform.scale * 100)}
-              onChange={(value) => setTransform(prev => ({ ...prev, scale: (value || 100) / 100 }))}
+              onChange={(value) => setTransform(prev => ({ ...prev, scale: (Number(value) || 100) / 100 }))}
               size="xs"
               w={60}
               min={10}
